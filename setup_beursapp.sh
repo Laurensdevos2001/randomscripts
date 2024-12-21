@@ -4,19 +4,31 @@
 set -e
 
 # Variables
+# FRONTEND_REPO_URL: De URL van de GitHub repository van de frontend
+FRONTEND_REPO_URL="<your-frontend-repo-url>"
+# BACKEND_REPO_URL: De URL van de GitHub repository van de backend
+BACKEND_REPO_URL="<your-backend-repo-url>"
+# FRONTEND_PATH: De locatie waar de frontend bestanden worden opgeslagen na de build
 FRONTEND_PATH="/var/www/frontend"
+# BACKEND_PATH: De locatie waar de backend code wordt geplaatst
 BACKEND_PATH="/home/$USER/backend"
+# FRONTEND_PORT: De poort waarop de frontend toegankelijk is (standaard 80 voor HTTP)
 FRONTEND_PORT=80
+# BACKEND_PORT: De poort waarop de backend draait
 BACKEND_PORT=3000
+# LOCAL_IP: Het lokale IP-adres van de Linux-machine
 LOCAL_IP=$(hostname -I | awk '{print $1}')
+# DB_NAME: De naam van de database die gebruikt wordt door de applicatie
 DB_NAME="myapp"
+# DB_USER: De gebruikersnaam voor toegang tot de database
 DB_USER="myappuser"
+# DB_PASSWORD: Het wachtwoord voor de databasegebruiker
 DB_PASSWORD="mypassword"
 
 # Update and install necessary software
 echo "Updating system and installing required software..."
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y nodejs npm nginx postgresql postgresql-contrib
+sudo apt install -y nodejs npm nginx postgresql postgresql-contrib git
 
 # Configure PostgreSQL
 echo "Configuring PostgreSQL..."
@@ -25,11 +37,15 @@ sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASS
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
 
 # Backend setup
-echo "Setting up backend..."
-mkdir -p "$BACKEND_PATH"
-# Placeholder for backend code - replace with your repository clone or copy
-# git clone <your-backend-repo-url> "$BACKEND_PATH"
-cd "$BACKEND_PATH"
+echo "Cloning and setting up backend..."
+if [ -d "$BACKEND_PATH" ]; then
+    echo "Backend path already exists. Pulling latest changes..."
+    cd "$BACKEND_PATH"
+    git pull
+else
+    git clone "$BACKEND_REPO_URL" "$BACKEND_PATH"
+    cd "$BACKEND_PATH"
+fi
 npm install
 
 # Create backend .env file
@@ -45,11 +61,15 @@ pm2 start "npm start" --name "backend" -- start
 pm2 save
 
 # Frontend setup
-echo "Setting up frontend..."
-mkdir -p "$FRONTEND_PATH"
-# Placeholder for frontend code - replace with your repository clone or copy
-# git clone <your-frontend-repo-url> "$FRONTEND_PATH"
-cd "$FRONTEND_PATH"
+echo "Cloning and setting up frontend..."
+if [ -d "$FRONTEND_PATH" ]; then
+    echo "Frontend path already exists. Pulling latest changes..."
+    cd "$FRONTEND_PATH"
+    git pull
+else
+    git clone "$FRONTEND_REPO_URL" "$FRONTEND_PATH"
+    cd "$FRONTEND_PATH"
+fi
 npm install
 npm run build
 
